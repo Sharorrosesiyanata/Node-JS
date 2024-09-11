@@ -1,75 +1,65 @@
 "use strict";
 
-const express = require("express");
-const app = express();
-const homeController = require("./controllers/homeController");
-const errorController = require("./controllers/errorController");
-const layouts = require("express-ejs-layouts");
+const express = require("express"),
+  app = express(),
+  errorController = require("./controllers/errorController"),
+  homeController = require("./controllers/homeController"),
+  subscribersController = require("./controllers/subscribersController"),
+  layouts = require("express-ejs-layouts"),
+  mongoose = require("mongoose"),
+  Subscriber = require("./models/subscriber");
 
-const MongoDB = require("mongodb").MongoClient;//importing mongodb modules to javascript
-const dbURL = "mongodb://localhost:27017/";
-const dbName = "recipe_db";
-//database connection
-MongoDB.connect(dbURL, (error, client) => {
-  if (error) throw error;
-  let db = client.db(dbName);
+mongoose.Promise = global.Promise;
 
-//find the contacts collection
-  db.collection("contacts")
-  .find()
-  .toArray((error, data) => {
-    if (error) throw error;
-    console.log(data);
-  });
+mongoose.connect(
+  "mongodb://localhost:27017/recipe_db",
+  { useNewUrlParser: true }
+);
+mongoose.set("useCreateIndex", true);
+const db = mongoose.connection;
 
-    //insert the document
-  db.collection("contacts")
-  .insert(
-    {
-      name: "Sharon-Rose",
-      email: "sharonrosesiyanata7@gmail.com"
-    },(error, db) => {
-      if (error) throw error;
-      console.log(db);
-    }
-  );
+db.once("open", () => {
+  console.log("Successfully connected to MongoDB using Mongoose!");
 });
 
-//middleware config
+var myQuery = Subscriber.findOne({
+  name: "Boitumelo Lefophane"
+}).where("email", /lefophane/);
+
+myQuery.exec((error, data) => {
+  if (data) console.log(data.name);
+});
+
 app.set("port", process.env.PORT || 3000);
 app.set("view engine", "ejs");
 
+app.use(express.static("public"));
 app.use(layouts);
 app.use(
   express.urlencoded({
-    extended: false,
+    extended: false
   })
 );
 app.use(express.json());
+app.use(homeController.logRequestPaths);
 
-app.use((req, res, next) => {
-  console.log(`request made to: ${req.url}`);
-  next();
-});
-
-//requests
-
-// app.get("/name", homeController.respondWithName);
-app.get("/name/:myName", homeController.respondWithName);
+app.get("/name", homeController.respondWithName);
 app.get("/items/:vegetable", homeController.sendReqParam);
 
-app.post("/", (req, res) => {
-  console.log(req.body);
-  console.log(req.query);
-  res.send("POST Successful!");
+app.get("/subscribers", subscribersController.getAllSubscribers, (req, res, next) => {
+  res.render("subscribers", { subscribers: req.data });
 });
 
-//app.use(errorController.logErrors);
+app.get("/", homeController.index);
+app.get("/courses", homeController.showCourses);
+
+app.get("/contact", subscribersController.getSubscriptionPage);
+app.post("/subscribe", subscribersController.saveSubscriber);
+
+app.use(errorController.logErrors);
 app.use(errorController.respondNoResourceFound);
 app.use(errorController.respondInternalError);
 
 app.listen(app.get("port"), () => {
   console.log(`Server running at http://localhost:${app.get("port")}`);
 });
-
-//error handling middleware

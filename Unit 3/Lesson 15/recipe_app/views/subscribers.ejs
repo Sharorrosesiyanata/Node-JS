@@ -1,14 +1,4 @@
-<div class="list-container">
-  <% subscribers.forEach(s => { %>
-  <div class="subscriber">
-    <p>
-      <span class="item-label">Name:</span>
-      <%= s.name %>
-    </p>
-    <p>
-      <span class="item-label">Email:</span>
-      <%= s.email %>
-    </p>
-  </div>
-  <% }); %>
-</div>
+<% subscribers.forEach(s => { %>
+  <p>Name: <%= s.name %></p>
+  <p>Email: <%= s.email %></p>
+ <% }); %>

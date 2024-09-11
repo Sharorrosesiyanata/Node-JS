@@ -25,6 +25,13 @@ exports.index = (req, res) => {
   res.render("index");
 };
 
+exports.showSignUp = (req, res) => {
+  res.render("contact");
+};
+
+exports.postedContactForm = (req, res) => {
+  res.render("thanks");
+};
 exports.logRequestPaths = (req, res, next) => {
   console.log(`request made to: ${req.url}`);
   next();

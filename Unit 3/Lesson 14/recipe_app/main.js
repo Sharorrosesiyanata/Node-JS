@@ -2,43 +2,90 @@
 
 const express = require("express");
 const app = express();
-const homeController = require("./controllers/homeController");
 const errorController = require("./controllers/errorController");
+const homeController = require("./controllers/homeController");
 const layouts = require("express-ejs-layouts");
 
-const MongoDB = require("mongodb").MongoClient;//importing mongodb modules to javascript
-const dbURL = "mongodb://localhost:27017/";
-const dbName = "recipe_db";
-//database connection
-MongoDB.connect(dbURL, (error, client) => {
-  if (error) throw error;
-  let db = client.db(dbName);
+//---------------------------------------------------------------------------------------------
+const Subscriber = require("./models/subscriber");
 
-//find the contacts collection
-  db.collection("contacts")
-  .find()
-  .toArray((error, data) => {
-    if (error) throw error;
-    console.log(data);
-  });
 
-    //insert the document
-  db.collection("contacts")
-  .insert(
-    {
-      name: "Sharon-Rose",
-      email: "sharonrosesiyanata7@gmail.com"
-    },(error, db) => {
-      if (error) throw error;
-      console.log(db);
-    }
-  );
+//MONGOOSE CONNECTION
+const mongoose = require("mongoose");
+mongoose.connect("mongodb://0.0.0.0:27017/recipe_db", {useNewUrlParser: true}
+);
+const db = mongoose.connection;
+
+db.once("open", ()=> {
+  console.log("Successfully connected to MongoDB using Mongoose...")
 });
 
-//middleware config
+
+//CREATE & SAVE MODELS IN MAIN.JS
+//USING CALLBACK FUNCTIONS
+//Option1
+// let subscriber1 = new Subscriber({
+//   name: "Audrey Ntomboxolo",
+//   email: "audreyseptember@gmail.com"
+// });
+
+// subscriber1.save((error, savedDocument) => {
+//   if (error) console.log(error);
+//   console.log(savedDocument);
+// });
+
+//Option2
+// Subscriber.create({
+//   name: "Victor Poto",
+//   email: "victorseptember@gmail.com"
+// }, (
+// function (error, savedDocument) {
+//   if (error) console.log(error);
+//   console.log(savedDocument);
+// })
+// );
+
+//RUNNING A QUERY
+// let myQuery = Subscriber.findOne({
+//   name: "Victor Poto"
+//   })
+//   .where("email", /september/);
+//  myQuery.exec((error, data) => {
+//   if (data) console.log(data.name);
+//  });
+
+//-------------------------------------------------------------------------------------------
+//CREATE & SAVE MODELS IN MAIN.JS
+//USING PROMISES
+//Option2
+Subscriber.create({
+  name: "Victor Poto",
+  email: "victorseptember@gmail.com"
+})
+  .then(savedDocument => {
+    console.log(savedDocument);
+  })
+  .catch(error => {
+    console.log(error);
+  });
+
+
+//RUNNING A QUERY
+const query = Subscriber.find({ name: "Victor Poto" }).exec();
+query
+  .then(docs => {
+    console.log(docs); // Handle the results
+  })
+  .catch(err => {
+    console.error(err); // Handle errors
+  });
+
+
+
 app.set("port", process.env.PORT || 3000);
 app.set("view engine", "ejs");
 
+app.use(express.static("public"));
 app.use(layouts);
 app.use(
   express.urlencoded({
@@ -46,16 +93,9 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(homeController.logRequestPaths);
 
-app.use((req, res, next) => {
-  console.log(`request made to: ${req.url}`);
-  next();
-});
-
-//requests
-
-// app.get("/name", homeController.respondWithName);
-app.get("/name/:myName", homeController.respondWithName);
+app.get("/name", homeController.respondWithName);
 app.get("/items/:vegetable", homeController.sendReqParam);
 
 app.post("/", (req, res) => {
@@ -64,12 +104,10 @@ app.post("/", (req, res) => {
   res.send("POST Successful!");
 });
 
-//app.use(errorController.logErrors);
+app.use(errorController.logErrors);
 app.use(errorController.respondNoResourceFound);
 app.use(errorController.respondInternalError);
 
 app.listen(app.get("port"), () => {
   console.log(`Server running at http://localhost:${app.get("port")}`);
 });
-
-//error handling middleware
